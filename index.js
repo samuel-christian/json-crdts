@@ -1,4 +1,3 @@
-module.exports = function() {
-	console.log("Hello, world! My first npm publish!");
-	return true;
-}
+"use strict";
+
+module.exports = require("./src/json_gcounter");
