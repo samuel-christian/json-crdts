@@ -1,8 +1,12 @@
 var name = "";
-var data = {[name]: 0};
+var data = {};
 
 function inc() {
-	this.data[this.name]++;
+	if (Object.keys(data).length == 0) {
+		return "No name set for replica. You can call set(name) method";
+	} else {
+		data[name]++;
+	}
 }
 
 function state() {
@@ -19,10 +23,17 @@ function val() {
 }
 
 function merge(replica) {
-	this.data[replica.name] = replica.val();
+	data[replica.name] = replica.val();
+}
+
+function set(n) {
+	name = n;
+	data = {[name]: 0};
 }
 
 const jsonGCounter = {
+	name,
+	data
 	inc,
 	state,
 	val,
