@@ -1,3 +1,3 @@
 "use strict";
 
-module.exports = require("./src/json_gcounter");
+module.exports.JsonGCounter = require("./src/json_gcounter");
