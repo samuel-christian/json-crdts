@@ -33,7 +33,7 @@ function set(n) {
 
 const jsonGCounter = {
 	name,
-	data
+	data,
 	inc,
 	state,
 	val,
