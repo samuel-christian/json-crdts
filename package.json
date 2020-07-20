@@ -1,0 +1,16 @@
+{
+  "name": "json-crdts",
+  "version": "0.1.0",
+  "description": "A collection of CRDTs for JSON document",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "crdt",
+    "json",
+    "EventualConsistency"
+  ],
+  "author": "Samuel Christian <smlchrstn31@gmail.com>",
+  "license": "MIT"
+}
