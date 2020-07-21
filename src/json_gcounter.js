@@ -1,9 +1,17 @@
 var name = "";
 var data = {};
 
+function getName() {
+	return name;
+}
+
+function getData() {
+	return data;
+}
+
 function inc() {
 	if (Object.keys(data).length == 0) {
-		return "No name set for replica. You can call set(name) method";
+		return "No name set for replica. You can call setName(n) method";
 	} else {
 		data[name]++;
 	}
@@ -26,18 +34,19 @@ function merge(replica) {
 	data[replica.name] = replica.val();
 }
 
-function set(n) {
+function setName(n) {
 	name = n;
 	data = {[name]: 0};
 }
 
-const jsonGCounter = {
-	name,
-	data,
+const json_gc = {
 	inc,
 	state,
 	val,
-	merge
+	merge,
+	setName,
+	getName,
+	getData
 };
 
-module.exports = jsonGCounter;
+module.exports = json_gc;
