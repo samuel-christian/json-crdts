@@ -39,6 +39,14 @@ function setName(n) {
 	data = {[name]: 0};
 }
 
+function to_json() {
+	var json_obj = {
+		name: name,
+		data: data
+	};
+	return JSON.stringify(json_obj, null, 2);
+}
+
 const json_gc = {
 	inc,
 	state,
@@ -46,7 +54,8 @@ const json_gc = {
 	merge,
 	setName,
 	getName,
-	getData
+	getData,
+	to_json
 };
 
 module.exports = json_gc;
