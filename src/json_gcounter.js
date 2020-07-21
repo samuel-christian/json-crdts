@@ -40,11 +40,10 @@ function setName(n) {
 }
 
 function to_json() {
-	var json_obj = {
+	return {
 		name: name,
 		data: data
 	};
-	return JSON.stringify(json_obj, null, 2);
 }
 
 const json_gc = {
