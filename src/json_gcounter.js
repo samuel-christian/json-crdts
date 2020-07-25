@@ -34,9 +34,9 @@ function merge(replica) {
 	data[replica.name] = replica.val();
 }
 
-function setName(n) {
+function setTo(n, d) {
 	name = n;
-	data = {[name]: 0};
+	data = d;
 }
 
 function to_json() {
@@ -51,7 +51,7 @@ const json_gc = {
 	state,
 	val,
 	merge,
-	setName,
+	setTo,
 	getName,
 	getData,
 	to_json
