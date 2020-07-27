@@ -1,1 +1,1 @@
-module.exports.gcounter = require("./src/json_gcounter");
+module.exports.GCounter = require("./src/json_gcounter");

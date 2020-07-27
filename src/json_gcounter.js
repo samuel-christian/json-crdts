@@ -1,60 +1,49 @@
-var name = "";
-var data = {};
+"use strict";
 
-function getName() {
-	return name;
-}
+class GCounter {
+	constructor(position) {
+		this.name = position;
+		this.data = new Array(this.name).fill(0);
+	}
 
-function getData() {
-	return data;
-}
+	inc() {
+		this.data[this.name-1]++;
+	}
 
-function inc() {
-	if (Object.keys(data).length == 0) {
-		return "No name set for replica. You can call setName(n) method";
-	} else {
-		data[name]++;
+	val() {
+		let sum = 0;
+		for (var i = this.data.length - 1; i >= 0; i--) {
+			sum += this.data[i];
+		}
+		return sum;
+	}
+
+	state() {
+		return this.data[this.name-1];
+	}
+
+	merge(replica) {
+		this.data[replica.name-1] = replica.state();
+	}
+
+	to_json() {
+		return {
+			name: this.name,
+			data: this.data
+		};
 	}
 }
 
-function state() {
-	let sum = 0;
-	let keys = Object.keys(data);
-	for (var i = keys.length - 1; i >= 0; i--) {
-		sum += data[keys[i]];
-	}
-	return sum;
-}
+module.exports = GCounter;
 
-function val() {
-	return data[name];
-}
+// const json_gc = {
+// 	name,
+// 	data,
+// 	inc,
+// 	state,
+// 	val,
+// 	merge,
+// 	to_json
+// };
 
-function merge(replica) {
-	data[replica.name] = replica.val();
-}
-
-function setTo(n, d) {
-	name = n;
-	data = d;
-}
-
-function to_json() {
-	return {
-		name: name,
-		data: data
-	};
-}
-
-const json_gc = {
-	inc,
-	state,
-	val,
-	merge,
-	setTo,
-	getName,
-	getData,
-	to_json
-};
-
-module.exports = json_gc;
+// module.exports = json_gc;
