@@ -22,8 +22,8 @@ class GCounter {
 		return this.data[this.name-1];
 	}
 
-	merge(replica) {
-		this.data[replica.name-1] = replica.state();
+	merge(pos, value) {
+		this.data[pos-1] = value;
 	}
 
 	to_json() {
