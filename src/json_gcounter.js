@@ -23,6 +23,10 @@ class GCounter {
 	}
 
 	merge(pos, value) {
+		if (this.data[pos-1] > value) {
+			this.data[pos-1] += value;
+			return this.data[pos-1];
+		}
 		this.data[pos-1] = value;
 	}
 
