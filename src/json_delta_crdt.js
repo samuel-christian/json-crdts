@@ -21,8 +21,10 @@ class JsonDeltaCrdt {
 	}
 
 	get(key) {
-		if (this.jsonData[key]["deleted"] == undefined) {
-			return this.jsonData[key].val;
+		if (this.jsonData[key] != undefined) {
+			if (this.jsonData[key]["deleted"] == undefined) {
+				return this.jsonData[key].val;
+			}
 		}
 	}
 
