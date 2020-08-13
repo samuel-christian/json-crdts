@@ -1,6 +1,6 @@
 {
   "name": "json-crdts",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A collection of CRDTs for JSON document",
   "main": "index.js",
   "scripts": {
