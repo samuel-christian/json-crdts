@@ -56,8 +56,10 @@ class JsonDeltaCrdt {
 			this.jsonData[key]["ack"] = [this.replicaId];
 			this.jsonData[key]["deleted"] = 1;
 			this.computeDelta();
+			return true;
 		} else {
 			console.log("Key '" + key + "' does not exist.");
+			return false;
 		}
 	}
 
