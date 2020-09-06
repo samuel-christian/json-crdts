@@ -94,7 +94,7 @@ class JsonDeltaCrdt {
 	// apply received delta
 	apply(delta) {
 		// deep copy only for testing purpose
-		var deltaForReplica = JSON.parse(JSON.stringify(delta[this.replicaId]));
+		var deltaForReplica = delta[this.replicaId];
 		if (Object.keys(deltaForReplica).length === 0) {
 			// empty delta
 			// do nothing
