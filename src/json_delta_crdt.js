@@ -129,33 +129,6 @@ class JsonDeltaCrdt {
 		}
 	}
 
-	applyFull(state) {
-		let ack = { [this.replicaId]: { val: [], currentTS: 0 } };
-		let maxClock = this.timestamp[0];
-		for (var key in state) {
-			maxClock = Math.max(maxClock, state[key].ts[0]);
-			if (this.has(key)) {
-				let localTS = this.jsonData[key].ts;
-				let remoteTS = state[key].ts;
-				if ((localTS[0] < remoteTS[0]) || (localTS[0] == remoteTS[0] && this.compareReplica(localTS[1], remoteTS[1]))) {
-					// last writer: remote
-					this.jsonData[key] = state[key];
-				}
-			} else {
-				this.jsonData[key] = state[key];
-			}
-			// acknowledge
-			if (!this.jsonData[key].ack.includes(this.replicaId)) {
-				this.jsonData[key].ack.push(this.replicaId);
-			}
-			ack[this.replicaId].val.push(key);
-		}
-		this.timestamp[0] = maxClock + 1;
-		ack[this.replicaId].currentTS = this.timestamp[0];
-		this.computeDelta();
-		return ack;
-	}
-
 	createHash(str) {
 		return crypto.createHash("sha256").update(str).digest("hex");
 	}
@@ -167,7 +140,7 @@ class JsonDeltaCrdt {
 	compareReplica(a, b) {
 		let hashA = this.createHash(a);
 		let hashB = this.createHash(b);
-		return this.parseHex(a) < this.parseHex(b);
+		return this.parseHex(hashA) < this.parseHex(hashB);
 	}
 }
 
