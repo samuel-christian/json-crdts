@@ -91,6 +91,17 @@ class JsonDeltaCrdt {
 		}
 	}
 
+	isDeltaEmpty(delta) {
+		var res = true;
+		for (var key in this.delta) {
+			if (Object.keys(this.delta[key]).length != 0) {
+				res = false;
+				break;
+			}
+		}
+		return res;
+	}
+
 	// apply received delta
 	apply(delta) {
 		// deep copy only for testing purpose
