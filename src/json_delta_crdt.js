@@ -119,8 +119,8 @@ class JsonDeltaCrdt {
 				// acknowledge
 				if (!this.jsonData[key].ack.includes(this.replicaId)) {
 					this.jsonData[key].ack.push(this.replicaId);
+					ack[this.replicaId].val.push(key);
 				}
-				ack[this.replicaId].val.push(key);
 			}
 			this.timestamp[0] = maxClock + 1;
 			ack[this.replicaId].currentTS = this.timestamp[0];
