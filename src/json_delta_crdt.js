@@ -1,13 +1,20 @@
 "use strict"
 
 const crypto = require("crypto");
+const net = require("net");
+const JsonSocket = require("json-socket");
 
 class JsonDeltaCrdt {
-	constructor(id) {
+	constructor(id, port, host) {
+		// CRDT attributes
 		this.replicaId = id;
 		this.timestamp = [0, this.replicaId];
 		this.jsonData = {};
 		this.delta = {};
+		// TCP connections setup
+		this.client = new JsonSocket(new net.Socket());
+		this.client.connect(port, host);
+		this.applyListener();
 	}
 
 	connect(replicaID) {
@@ -18,6 +25,23 @@ class JsonDeltaCrdt {
 			let msg = "Already registered as neighbours!";
 			return msg;
 		}
+	}
+
+	applyListener() {
+		this.client.on('connect', () => {
+			this.client.on('message', (message) => {
+				if (message.type == "ack") {
+					this.receive(JSON.parse(message.content));
+				} else {
+					var ack_message = this.apply(JSON.parse(message));
+					// send ack message back to server
+					this.client.sendMessage({
+						type: "ack",
+						content: ack_message
+					});
+				}
+			});
+		});
 	}
 
 	get(key) {
@@ -46,7 +70,8 @@ class JsonDeltaCrdt {
 	add(key, value) {
 		this.timestamp[0] += 1;
 		this.jsonData[key] = { val: value, ts: [this.timestamp[0], this.timestamp[1]], ack: [this.replicaId] };
-		return this.computeDelta();
+		this.computeDelta();
+		return this.delta;
 	}
 
 	delete(key) {
@@ -71,6 +96,14 @@ class JsonDeltaCrdt {
 				}
 			}
 		}
+		this.client.on('connect', () => {
+			if (!this.isDeltaEmpty()) {
+				this.client.sendMessage({
+					type: "delta",
+					content: this.delta
+				});
+			}
+		});
 		return this.delta;
 	}
 
