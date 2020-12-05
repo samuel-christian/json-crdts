@@ -15,6 +15,7 @@ class JsonDeltaCrdt {
 		this.client = new JsonSocket(new net.Socket());
 		this.client.connect(port, host);
 		this.applyListener();
+		this.connect("http://"+host+":"+port);
 	}
 
 	connect(replicaID) {
@@ -29,18 +30,30 @@ class JsonDeltaCrdt {
 
 	applyListener() {
 		this.client.on('connect', () => {
+			// send server its info
+			this.client.sendMessage({
+				type: "intro",
+				content: this.replicaId
+			});
 			this.client.on('message', (message) => {
 				if (message.type == "ack") {
-					this.receive(JSON.parse(message.content));
-				} else {
-					var ack_message = this.apply(JSON.parse(message));
+					this.receive(message.content);
+				} else if (message.type == "delta") {
+					var ack_message = this.apply(message.content);
 					// send ack message back to server
 					this.client.sendMessage({
 						type: "ack",
 						content: ack_message
 					});
+				} else if (message.type == "intro") {
+					// apply full state
+					this.jsonData = message.content;
+					this.computeDelta();
 				}
 			});
+		});
+		this.client.on('error', (error) => {
+			(error.errno == -61) ? console.log("The server is off! Turn it on first!") : console.log(error);
 		});
 	}
 
@@ -96,14 +109,12 @@ class JsonDeltaCrdt {
 				}
 			}
 		}
-		this.client.on('connect', () => {
-			if (!this.isDeltaEmpty()) {
-				this.client.sendMessage({
-					type: "delta",
-					content: this.delta
-				});
-			}
-		});
+		if (!this.isDeltaEmpty()) {
+			this.client.sendMessage({
+				type: "delta",
+				content: this.delta
+			});
+		}
 		return this.delta;
 	}
 
