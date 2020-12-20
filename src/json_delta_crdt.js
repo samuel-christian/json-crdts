@@ -5,17 +5,19 @@ const net = require("net");
 const JsonSocket = require("json-socket");
 
 class JsonDeltaCrdt {
-	constructor(id, port, host) {
+	constructor(id, p, h) {
 		// CRDT attributes
 		this.replicaId = id;
 		this.timestamp = [0, this.replicaId];
 		this.jsonData = {};
 		this.delta = {};
 		// TCP connections setup
+		this.port = p;
+		this.host = h;
 		this.client = new JsonSocket(new net.Socket());
-		this.client.connect(port, host);
+		this.client.connect(p, h);
 		this.applyListener();
-		this.connect("http://"+host+":"+port);
+		this.connect("http://"+this.host+":"+this.port);
 	}
 
 	connect(replicaID) {
@@ -26,6 +28,16 @@ class JsonDeltaCrdt {
 			let msg = "Already registered as neighbours!";
 			return msg;
 		}
+	}
+
+	disconnect() {
+		this.client.end();
+	}
+
+	reconnect() {
+		this.client = new JsonSocket(new net.Socket());
+		this.client.connect(this.port, this.host);
+		this.applyListener();
 	}
 
 	applyListener() {
