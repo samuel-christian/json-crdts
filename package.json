@@ -1,6 +1,6 @@
 {
   "name": "json-crdts",
-  "version": "0.9.4",
+  "version": "1.0.0",
   "description": "A collection of CRDTs for JSON document",
   "main": "index.js",
   "scripts": {
@@ -16,8 +16,7 @@
     "EventualConsistency"
   ],
   "dependencies": {
-    "json-socket": "*",
-    "readline": "*"
+    "json-socket": "*"
   },
   "author": "Samuel Christian <smlchrstn31@gmail.com>",
   "license": "MIT"
