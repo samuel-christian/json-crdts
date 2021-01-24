@@ -5,22 +5,24 @@ const net = require("net");
 const JsonSocket = require("json-socket");
 
 class JsonDeltaCrdt {
-	constructor(id, p, h) {
+	constructor(id, tcp_open, host_to, connect_to_port) {
 		// CRDT attributes
 		this.replicaId = id;
 		this.timestamp = [0, this.replicaId];
 		this.jsonData = {};
 		this.delta = {};
 		// TCP connections setup
-		this.port = p;
-		this.host = h;
+		this.port = connect_to_port;
+		this.host = host_to;
+		this.tcp_port = tcp_open;
+		this.sockets = [];
+		this.openTcp();
 		this.client = new JsonSocket(new net.Socket());
-		this.client.connect(p, h);
+		this.client.connect(connect_to_port, host_to);
 		this.applyListener();
-		this.connect("http://"+this.host+":"+this.port);
 	}
 
-	connect(replicaID) {
+	addToDeltaSet(replicaID) {
 		if (this.delta[replicaID] == undefined) {
 			this.delta[replicaID] = {};
 			this.computeDelta();
@@ -28,45 +30,6 @@ class JsonDeltaCrdt {
 			let msg = "Already registered as neighbours!";
 			return msg;
 		}
-	}
-
-	disconnect() {
-		this.client.end();
-	}
-
-	reconnect() {
-		this.client = new JsonSocket(new net.Socket());
-		this.client.connect(this.port, this.host);
-		this.applyListener();
-	}
-
-	applyListener() {
-		this.client.on('connect', () => {
-			// send server its info
-			this.client.sendMessage({
-				type: "intro",
-				content: this.replicaId
-			});
-			this.client.on('message', (message) => {
-				if (message.type == "ack") {
-					this.receive(message.content);
-				} else if (message.type == "delta") {
-					var ack_message = this.apply(message.content);
-					// send ack message back to server
-					this.client.sendMessage({
-						type: "ack",
-						content: ack_message
-					});
-				} else if (message.type == "intro") {
-					// apply full state
-					this.jsonData = message.content;
-					this.computeDelta();
-				}
-			});
-		});
-		this.client.on('error', (error) => {
-			(error.errno == -61) ? console.log("The server is off! Turn it on first!") : console.log(error);
-		});
 	}
 
 	get(key) {
@@ -208,6 +171,113 @@ class JsonDeltaCrdt {
 		let hashA = this.createHash(a);
 		let hashB = this.createHash(b);
 		return this.parseHex(hashA) < this.parseHex(hashB);
+	}
+
+	// CONNECTION STUFF
+	openTcp() {
+		var tcp_connection = net.createServer((socket) => {
+			var socket_name = socket.remoteAddress + ":" + socket.remotePort;
+			console.log("Client " + socket_name + " connected!");
+
+			socket = new JsonSocket(socket);
+			socket.name = socket_name;
+			this.sockets.push(socket);
+			// apply listener
+			socket.on('message', (data) => {
+				if (data.type == "intro") {
+					this.addToDeltaSet(data.content);
+					if (this.isDeltaEmpty()) {
+						// transfer full state
+						socket.sendMessage({
+							type: "intro",
+							content: this.jsonData,
+							replicaId: this.replicaId
+						});
+					} else {
+						socket.sendMessage({
+							type: "delta",
+							content: this.delta
+						});
+					}
+				} else if (data.type == "delta") {
+					var ack_message = this.apply(data.content);
+					this.broadcast(socket, data, ack_message);
+				} else {
+					this.receive(data.content);
+				}
+			});
+
+			socket.on('end', () => {
+				console.log("Client " + socket_name + " disconnected!");
+				this.sockets.splice(this.sockets.indexOf(socket), 1);
+			});
+		});
+		tcp_connection.listen(this.tcp_port, () => {
+			console.log("TCP connection is opened on port: " + this.tcp_port);
+		});
+	}
+
+	broadcast(from, data, ack_message) {
+		if (sockets.length === 0) return;
+		sockets.forEach((socket) => {
+			if (socket.name === from.name) {
+				from.sendMessage({
+					type: "ack",
+					content: ack_message
+				});
+			} else {
+				socket.sendMessage({
+					type: "delta",
+					content: this.delta
+				});
+			}
+		});
+	}
+
+	reconnect() {
+		this.client = new JsonSocket(new net.Socket());
+		this.client.connect(this.port, this.host);
+		this.applyListener();
+	}
+
+	disconnect() {
+		this.client.end();
+	}
+
+	applyListener() {
+		this.client.on('connect', () => {
+			console.log("connected!");
+			// this.addToDeltaSet("http://"+this.host+":"+this.port);
+			// send server its info
+			this.client.sendMessage({
+				type: "intro",
+				content: this.replicaId
+			});
+			this.client.on('message', (message) => {
+				if (message.type == "ack") {
+					this.receive(message.content);
+				} else if (message.type == "delta") {
+					var ack_message = this.apply(message.content);
+					// send ack message back to server
+					this.client.sendMessage({
+						type: "ack",
+						content: ack_message
+					});
+				} else if (message.type == "intro") {
+					this.addToDeltaSet(message.replicaId);
+					// apply full state
+					this.jsonData = message.content;
+					this.computeDelta();
+				}
+			});
+		});
+		this.client.on('error', (err) => {
+			setTimeout(() => {
+				console.log("Trying to reconnect...");
+				this.client.connect(this.port, this.host);
+			}, 1000);
+			// (error.errno == -61) ? console.log("The server is off! Turn it on first!") : console.log(error);
+		});
 	}
 }
 
