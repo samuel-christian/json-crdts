@@ -3,23 +3,29 @@
 const crypto = require("crypto");
 const net = require("net");
 const JsonSocket = require("json-socket");
+const fs = require("fs");
 
 class JsonDeltaCrdt {
-	constructor(id, tcp_open, host_to, connect_to_port) {
+	constructor(config_file_name) {
+		this.configuration = this.readConfig(config_file_name); // file extension must be supplied
+		// id, tcp_open, host_to, connect_to_port
 		// CRDT attributes
-		this.replicaId = id;
+		this.replicaId = this.configuration.name;
 		this.timestamp = [0, this.replicaId];
 		this.jsonData = {};
 		this.delta = {};
 		// TCP connections setup
-		this.port = connect_to_port;
-		this.host = host_to;
-		this.tcp_port = tcp_open;
+		this.tcp_port = this.configuration.tcp_port;
 		this.sockets = [];
 		this.openTcp();
 		this.client = new JsonSocket(new net.Socket());
-		this.client.connect(connect_to_port, host_to);
+		this.node = this.configuration.node;
+		this.initConnection();
+	}
+
+	initConnection() {
 		this.applyListener();
+		this.client.connect(this.node.port, this.node.host);
 	}
 
 	addToDeltaSet(replicaID) {
@@ -247,7 +253,6 @@ class JsonDeltaCrdt {
 	applyListener() {
 		this.client.on('connect', () => {
 			console.log("connected!");
-			// this.addToDeltaSet("http://"+this.host+":"+this.port);
 			// send server its info
 			this.client.sendMessage({
 				type: "intro",
@@ -274,12 +279,27 @@ class JsonDeltaCrdt {
 		this.client.on('error', (err) => {
 			setTimeout(() => {
 				console.log("Trying to reconnect...");
-				this.client.connect(this.port, this.host);
+				this.client.connect(this.node.port, this.node.host);
 			}, 1000);
 			// (error.errno == -61) ? console.log("The server is off! Turn it on first!") : console.log(error);
 		});
 	}
+	
+	// CONFIGURATION STUFF
+	readConfig(config_file) {
+		if (fs.existsSync(config_file)) {
+			console.log("Reading configuration file...");
+			var raw_config = fs.readFileSync(config_file);
+			var config_json = JSON.parse(raw_config);
+			return config_json;
+		} else {
+			console.log("No configuration file is specified, exiting the program...");
+			console.log("Please check if the supplied file name must be with .json extension!");
+			process.exit(0);
+		}
+	}
 }
+
 
 module.exports = JsonDeltaCrdt;
 
