@@ -22,9 +22,6 @@ class JsonDeltaCrdt {
 			this.client = new JsonSocket(new net.Socket());
 			this.node = this.configuration.node;
 			this.initConnection();
-		} else {
-			// no server to connect to
-			this.applyListener();
 		}
 	}
 
