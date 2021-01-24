@@ -94,7 +94,7 @@ class JsonDeltaCrdt {
 		}
 		if (!this.isDeltaEmpty()) {
 			// broadcast to neighbour nodes that connect to it
-			sockets.forEach((socket) => {
+			this.sockets.forEach((socket) => {
 				socket.sendMessage({
 					type: "delta",
 					content: this.delta
