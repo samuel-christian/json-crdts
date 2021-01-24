@@ -18,9 +18,14 @@ class JsonDeltaCrdt {
 		this.tcp_port = this.configuration.tcp_port;
 		this.sockets = [];
 		this.openTcp();
-		this.client = new JsonSocket(new net.Socket());
-		this.node = this.configuration.node;
-		this.initConnection();
+		if (this.configuration.node != "") {
+			this.client = new JsonSocket(new net.Socket());
+			this.node = this.configuration.node;
+			this.initConnection();
+		} else {
+			// no server to connect to
+			this.applyListener();
+		}
 	}
 
 	initConnection() {
@@ -91,12 +96,21 @@ class JsonDeltaCrdt {
 			}
 		}
 		if (!this.isDeltaEmpty()) {
-			this.client.sendMessage({
-				type: "delta",
-				content: this.delta
+			// broadcast to neighbour nodes that connect to it
+			sockets.forEach((socket) => {
+				socket.sendMessage({
+					type: "delta",
+					content: this.delta
+				});
 			});
+			// send to neighbour node if it has one
+			if (this.client != undefined) {
+				this.client.sendMessage({
+					type: "delta",
+					content: this.delta
+				});
+			}
 		}
-		return this.delta;
 	}
 
 	receive(ack) {
@@ -284,7 +298,7 @@ class JsonDeltaCrdt {
 			// (error.errno == -61) ? console.log("The server is off! Turn it on first!") : console.log(error);
 		});
 	}
-	
+
 	// CONFIGURATION STUFF
 	readConfig(config_file) {
 		if (fs.existsSync(config_file)) {
