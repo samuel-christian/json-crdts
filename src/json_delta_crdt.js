@@ -264,11 +264,11 @@ class JsonDeltaCrdt {
 	}
 
 	reconnect() {
-		this.clients.forEach((client, index) => {
-			client = new JsonSocket(new net.Socket());
-			client.connect(this.nodes[index].port, this.nodex[index].host);
-			this.applyListener();
-		});
+		this.configuration = this.readConfig(config_file_name); // file extension must be supplied
+		if (this.configuration.nodes.length > 0) {
+			this.clients = [];
+			this.initConnection();
+		}
 	}
 
 	disconnect() {
