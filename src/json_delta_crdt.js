@@ -24,14 +24,6 @@ class JsonDeltaCrdt {
 		}
 	}
 
-	initConnection() {
-		this.nodes.forEach((node) => {
-			var client = new JsonSocket(new net.Socket());
-			this.clients.push(client);
-		})
-		this.applyListener();
-	}
-
 	addToDeltaSet(replicaID) {
 		if (this.delta[replicaID] == undefined) {
 			this.delta[replicaID] = {};
@@ -39,6 +31,28 @@ class JsonDeltaCrdt {
 		} else {
 			let msg = "Already registered as neighbours!";
 			return msg;
+		}
+	}
+
+	removeFromDeltaSet(replicaID) {
+		delete this.delta.replicaID;
+		// remove from ack array
+		for (var key in this.jsonData) {
+			var ack_array = this.jsonData[key].ack;
+			ack_array.splice(ack_array.indexOf(replicaID), 1);
+		}
+	}
+
+	endClient(clientName) {
+		var foundIndex = -1;
+		this.clients.find((client, index) => {
+			if (client.name == clientName) {
+				foundIndex = index;
+			}
+		});
+		if (foundIndex != -1) {
+			this.clients[foundIndex].end();
+			this.clients.splice(foundIndex, 1);
 		}
 	}
 
@@ -195,17 +209,26 @@ class JsonDeltaCrdt {
 	}
 
 	// CONNECTION STUFF
+	initConnection() {
+		this.nodes.forEach((node) => {
+			var client = new JsonSocket(new net.Socket());
+			client.name = node.name;
+			client.reconnect = true;
+			this.clients.push(client);
+		})
+		this.applyListener();
+	}
+
 	openTcp() {
 		var tcp_connection = net.createServer((socket) => {
-			var socket_name = socket.remoteAddress + ":" + socket.remotePort;
-			console.log("Client " + socket_name + " connected!");
 
+			var remoteAddress = socket.remoteAddress;
 			socket = new JsonSocket(socket);
-			socket.name = socket_name;
-			this.sockets.push(socket);
 			// apply listener
 			socket.on('message', (data) => {
 				if (data.type == "intro") {
+					socket.name = data.content;
+					console.log("Client " + socket.name + " (" + remoteAddress + ") " + "connected!");
 					this.addToDeltaSet(data.content);
 					if (this.isDeltaEmpty()) {
 						// transfer full state
@@ -223,21 +246,22 @@ class JsonDeltaCrdt {
 				} else if (data.type == "delta") {
 					var ack_message = this.apply(data.content);
 					this.broadcast(socket, data, ack_message);
-				} else if (data.type == "full_state") {
-					this.jsonData = data.content;
-					this.computeDelta();
 				} else {
 					this.receive(data.content);
 				}
 			});
+			this.sockets.push(socket);
 
 			socket.on('end', () => {
-				console.log("Client " + socket_name + " disconnected!");
+				console.log("Client " + socket.name + " (" + remoteAddress + ") " + "disconnected!");
+				this.removeFromDeltaSet(socket.name);
+				this.endClient(socket.name);
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 			});
 
-			socket.on('error', () => {
-				console.log("socket closed!");
+			socket.on('error', (err) => {
+				console.log("socket " + socket.name + " (" + remoteAddress + ") " + "closed! " + "(" + err.code + ")");
+				this.removeFromDeltaSet(socket.name);
 				this.sockets.splice(this.sockets.indexOf(socket), 1);
 			})
 		});
@@ -263,24 +287,10 @@ class JsonDeltaCrdt {
 		});
 	}
 
-	reconnect() {
-		this.configuration = this.readConfig(config_file_name); // file extension must be supplied
-		if (this.configuration.nodes.length > 0) {
-			this.clients = [];
-			this.initConnection();
-		}
-	}
-
-	disconnect() {
-		this.clients.forEach((client) => {
-			client.end();
-		});
-	}
-
 	applyListener() {
 		this.clients.forEach((client, index) => {
 			client.on('connect', () => {
-				console.log("connected!");
+				console.log("connected to " + this.nodes[index].host + ":" + this.nodes[index].port + "!");
 				// send server its info
 				client.sendMessage({
 					type: "intro",
@@ -306,13 +316,21 @@ class JsonDeltaCrdt {
 			});
 			client.on('error', (err) => {
 				setTimeout(() => {
-					console.log("Trying to reconnect...");
+					console.log("Finding " + this.nodes[index].host + ":" + this.nodes[index].port + "...");
 					client.connect(this.nodes[index].port, this.nodes[index].host);
-					client.sendMessage({
-						type: "full_state",
-						content: this.jsonData
-					});
 				}, 1000);
+			});
+
+			client.on('end', () => {
+				if (client.reconnect) {
+					console.log("client disconnects, wait 1s to reconnect...");
+					setTimeout(() => {
+						console.log("(reconnect) Finding " + this.nodes[index].host + ":" + this.nodes[index].port + "...");
+						client.connect(this.nodes[index].port, this.nodes[index].host);
+					}, 1000);
+				} else {
+					console.log("No reconnect for you!");
+				}
 			});
 			client.connect(this.nodes[index].port, this.nodes[index].host);
 		});
@@ -330,6 +348,20 @@ class JsonDeltaCrdt {
 			console.log("Please check if the supplied file name must be with .json extension!");
 			process.exit(0);
 		}
+	}
+
+	// FOR EXPERIMENTAL STUFF ONLY
+	reconnect() {
+		this.clients = [];
+		this.initConnection();
+	}
+
+	disconnect() {
+		this.clients.forEach((client) => {
+			client.end(() => {
+				client.reconnect = false;
+			});
+		});
 	}
 }
 
