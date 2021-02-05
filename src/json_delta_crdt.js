@@ -349,20 +349,6 @@ class JsonDeltaCrdt {
 			process.exit(0);
 		}
 	}
-
-	// FOR EXPERIMENTAL STUFF ONLY
-	reconnect() {
-		this.clients = [];
-		this.initConnection();
-	}
-
-	disconnect() {
-		this.clients.forEach((client) => {
-			client.end(() => {
-				client.reconnect = false;
-			});
-		});
-	}
 }
 
 
